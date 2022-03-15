@@ -23,14 +23,15 @@ tryInsert <- function(conn, name, value, progress = TRUE) {
       DBI::dbQuoteIdentifier(conn, name), "':"
     )
 
-    message(cond)
     cli::cli_alert_warning("Aborting transaction")
-    
-    return(DBI::dbRollback(conn))
+    DBI::dbRollback(conn)
+
+    message(cond)
   })
 }
 
 #' @importFrom cli cli_h2 cli_alert_success cli_h3 cli_alert_info
+#' @export
 stanfit_insert <- function(sf, conn, schema = "stanfit") {
 
   # -- Begin transaction ------------------------------------------------------
@@ -42,7 +43,15 @@ stanfit_insert <- function(sf, conn, schema = "stanfit") {
 
   cli_h3("Generating tables")
 
-  tables <- get_table_entries(sf, id, progress = TRUE)
+  tryCatch({
+    tables <- get_table_entries(sf, id, progress = TRUE)
+  },
+  error = function(cond) {
+    message(cond)
+    cli::cli_alert_warning("Aborting transaction")
+    
+    return(DBI::dbRollback(conn))
+  })
 
   cli_h3("Performing insertions")
 

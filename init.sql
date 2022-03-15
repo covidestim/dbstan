@@ -32,16 +32,16 @@ create table stanfit.summary (
   id integer references stanfit.run_ids,
   par text not null,
   idx integer not null,
-  mean numeric not null,
-  se_mean numeric, /* Can be null */
-  sd numeric not null,
-  p2_5 numeric not null,
-  p25 numeric not null,
-  p50 numeric not null,
-  p75 numeric not null,
-  p97_5 numeric not null,
-  n_eff numeric, /* Can be null */ 
-  rhat numeric, /* Can be null */ 
+  mean double precision,
+  se_mean double precision, /* Can be null */
+  sd double precision,
+  p2_5 double precision,
+  p25 double precision,
+  p50 double precision,
+  p75 double precision,
+  p97_5 double precision,
+  n_eff double precision, /* Can be null */ 
+  rhat double precision, /* Can be null */ 
 
   primary key (id, par, idx)
 );
@@ -51,13 +51,13 @@ create table stanfit.c_summary (
   chain integer not null,
   par text not null,
   idx integer not null,
-  mean numeric not null,
-  sd numeric not null,
-  p2_5 numeric not null,
-  p25 numeric not null,
-  p50 numeric not null,
-  p75 numeric not null,
-  p97_5 numeric not null,
+  mean double precision,
+  sd double precision,
+  p2_5 double precision,
+  p25 double precision,
+  p50 double precision,
+  p75 double precision,
+  p97_5 double precision,
 
   primary key (id, chain, par, idx)
 );
@@ -66,7 +66,7 @@ create table stanfit.log_posterior (
   id integer references stanfit.run_ids,
   chain integer not null,
   iter integer not null,
-  value numeric not null,
+  value double precision not null,
 
   primary key (id, chain, iter)
 );
@@ -75,12 +75,12 @@ create table stanfit.sampler_params (
   id integer references stanfit.run_ids,
   chain integer not null,
   iter integer not null,
-  accept_stat numeric not null,
-  stepsize numeric not null,
-  treedepth numeric not null,
-  n_leapfrog numeric not null,
-  divergent numeric not null,
-  energy numeric not null,
+  accept_stat double precision not null,
+  stepsize double precision not null,
+  treedepth double precision not null,
+  n_leapfrog double precision not null,
+  divergent double precision not null,
+  energy double precision not null,
 
   primary key (id, chain, iter)
 );

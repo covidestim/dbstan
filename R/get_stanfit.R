@@ -2,6 +2,7 @@
 #' @importFrom dbplyr in_schema
 #' @importFrom cli cli_ol cli_ul cli_li cli_end cli_h2 cli_h1 cli_vec
 #' @importFrom magrittr %>%
+#' @export
 get_stanfit <- function(id, conn, schema = "stanfit") {
 
   id_ <- id
