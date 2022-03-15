@@ -1,14 +1,22 @@
-Slots:
+## The `stanfit` object
 
-- `model_name` table A
+Results from calls to `rstan::sampling()` or `rstan::stan()` are stored in
+`stanfit` objects.  The contents of the object are described in detail
+[here][stanfit]. Each object is an [S4][s4] class with a bunch of slots that
+represent various parts of the sampling process, like the model code, the
+samples drawn from the posterior, and diagnostic messages from the NUTS sampler.
 
-- `model_pars` table "Pars", length(model_pars) == length(par_dims)
-- `par_dims`
-- `mode`
-- `sim`
-- `inits`
-- `stan_args` - probably best done as JSON. One for each chain.
-- `stanmodel` - grab the code as text and insert?
+`dbstan` organizes these slots into a relational model. The slots are summarized
+below:
+
+- `model_name` Name of the model
+- `model_pars` Parameters in the model, including the `generated quantities{}` block and `transformed parameters{}` block
+- `par_dims` Dimensions of said paramaeters
+- `mode` Status code indicating success or failure of the sampler
+- `sim` Matrix containing the individual samples. **`dbstan` does not attempt to load this info into the db due to the size**
+- `inits` Initial values of all parameters on the first iteration
+- `stan_args` - Arguments for the sampler
+- `stanmodel` - Model code, as a `stanmodel` object
 - `date` - Date of object creation
 
 ### Table `run_ids`
@@ -108,3 +116,6 @@ This one is a little tricky.
 | n_leapfrog  | `get_sampler_params(r)[[chain]]$n_leapfrog__`  | numeric |       |
 | divergent   | `get_sampler_params(r)[[chain]]$divergent__`   | numeric |       |
 | energy      | `get_sampler_params(r)[[chain]]$energy__`      | numeric |       |
+
+[stanfit]: FILLME
+[s4]: FILLME
