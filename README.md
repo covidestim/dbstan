@@ -103,7 +103,7 @@ below:
 - `stanmodel` - Model code, as a `stanmodel` object
 - `date` - Date of object creation
 
-## Table schema
+## `dbstan` table schema
 
 The schema can be viewed in `init.sql` - here is a more descriptive mapping
 between the `stanfit` object and its relational model.
