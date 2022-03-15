@@ -198,7 +198,7 @@ We pivot the data a bit to get it into nearly the same structure as the `summary
 | P75     | `summary(r)$summary[["75%"]]`   | double precision |       |
 | P97.5   | `summary(r)$summary[["97.5%"]]` | double precision |       |
 
-### Table: 'log_posterior'
+### Table: `log_posterior`
 
 The log posterior at each iteration, for each chain.
 
