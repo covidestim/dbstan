@@ -51,18 +51,18 @@ This helps avoid situations where:
 
 - Multiple researchers have to swap RDS archives back and forth to exchange
   results.  
-  *Now, you can just write queries against a database to get the results*
+  > *Now, you can just write queries against a database to get the results*
 
 - Researchers want to do analysis across multiple (possibly many) sampled runs,
   but don't have enough RAM to do so, or don't want to keep track of various
-  slimmed-down representations of the original `stanfit` object.
-  *Now, you can have the RDBMS do the heavy lifting, and enjoy a schema that
+  slimmed-down representations of the original `stanfit` object.  
+  > *Now, you can have the RDBMS do the heavy lifting, and enjoy a schema that
   doesn't care if you add or subtract parameters from your model*
 
 - Researchers are using a computing cluster and want to avoid shuffling
   around tons of RDS files, running out of space on either the cluster or their
-  dev machine, etc.
-  *Now, the cluster can just `INSERT` the `stanfit` object and move onto the
+  dev machine, etc.  
+  > *Now, the cluster can just `INSERT` the `stanfit` object and move onto the
   next task, without the need to write to disk.*
 
 Tested with Postgres 14.2, but it should work with many other SQL-based
