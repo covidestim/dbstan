@@ -6,10 +6,22 @@ DBMS-agnostic interface to INSERT a representation of a `stanfit` object into a
 DB, and it also provides a helper method to retrieve a particular `stanfit`
 object's information from the DB. This way, you can easily get (batches of)
 sampler results into a database, whereupon it usually becomes much easier
-to run analyses and share data. For example:
+to run analyses and share data. Your `stanfit` object gets represented as entries in the following tables:
+
+- `stanfit.run_ids`
+- `stanfit.run_info`
+- `stanfit.model_pars`
+- `stanfit.stanmodel`
+- `stanfit.summary`
+- `stanfit.c_summary`
+- `stanfit.log_posterior`
+- `stanfit.sampler_params`
+
+This operation is enabled by the `stanfit_insert()` function. For example:
 
 ```r
 library(rstan)
+library(dbplyr)
 library(dbstan)
 
 # Establish a DB connection using DBI
@@ -28,7 +40,7 @@ fit1 <- stan(
 
 id <- stanfit_insert(fit1, conn) # INSERT `stanfit` into db and store the UID
 
-# Retrieve summary as a dbplyr table, backed by our database.
+# Retrieve summary as a dbplyr table, backed by your database.
 tbl(conn, in_schema('stanfit', 'summary')) %>% filter(id == I(id))
 ```
 
@@ -45,8 +57,8 @@ databases.
 
 ## Get up and running
 
-1. Execute `init.sql`, which CREATEs a `"stanfit"` schema in your database and
-   CREATEs all tables.
+1. Execute `init.sql` against your database, which CREATEs a `"stanfit"` schema
+   in your database and CREATEs all tables.
 
 2. Make sure you can connect to the database using [`DBI::dbConnect()`][dbconnect].
 
@@ -78,7 +90,7 @@ below:
 The schema can be viewed in `init.sql` - here is a more descriptive mapping
 between the `stanfit` object and its relational model.
 
-### Table `run_ids`
+### Table: `run_ids`
 
 This table is an index of all of the `stanfit` objects represented in the
 schema.
@@ -87,7 +99,7 @@ schema.
 |-------|--------------|----------------------------------------------------------------------|
 | id    | None         | Serial, assigned by the database on insertion using `stanfit_insert` |
 
-### Table `run_info`
+### Table: `run_info`
 
 Basic information about the run including how long it took.
 
@@ -99,7 +111,7 @@ Basic information about the run including how long it took.
 | mode       | `@mode`                                               | numeric     |                                               |
 | stan_args  | `@stan_args[[1]]`                                     | JSON        | Take the first chain and represent it as JSON |
 
-### Table `model_pars`
+### Table: `model_pars`
 
 Model parameters and their dimension. Includes variables declared in:
 
@@ -113,7 +125,7 @@ Model parameters and their dimension. Includes variables declared in:
 | par   | `names(r@par_dims)` | text    | Includes all parameters/transformed ps/generated |
 | dim   | `@par_dims`         | numeric | 0 represents scalars                             |
 
-### Table `stanmodel`
+### Table: `stanmodel`
 
 Model code.
 
