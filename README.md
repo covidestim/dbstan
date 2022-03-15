@@ -1,12 +1,15 @@
 # dbstan
 
 `dbstan` is glue code for connecting [`rstan::stanfit`][stanfit] objects and
-relational databases.  It leverages the [DBI][dbi] package to provide a
-DBMS-agnostic interface to INSERT a representation of a `stanfit` object into a
-DB, and it also provides a helper method to retrieve a particular `stanfit`
-object's information from the DB. This way, you can easily get (batches of)
-sampler results into a database, whereupon it usually becomes much easier
-to run analyses and share data. Your `stanfit` object gets represented as entries in the following tables:
+relational databases.  It leverages the [DBI][dbi] package to provide a very
+simple, DBMS-agnostic interface for INSERTing a representation of a `stanfit`
+object into a DB, and it also provides a helper method to retrieve a particular
+`stanfit` object's information from the DB. This way, you can easily get
+(batches of) sampler results into a database, which usually makes it more
+convenient to run analyses and share data.
+
+The package creates a transformed representation of a `stanfit` object as
+entries in eight SQL tables:
 
 - `stanfit.run_ids`
 - `stanfit.run_info`
@@ -17,7 +20,7 @@ to run analyses and share data. Your `stanfit` object gets represented as entrie
 - `stanfit.log_posterior`
 - `stanfit.sampler_params`
 
-This operation is enabled by the `stanfit_insert()` function. For example:
+This work is done by the `stanfit_insert()` function. For example:
 
 ```r
 library(rstan)
@@ -44,21 +47,36 @@ id <- stanfit_insert(fit1, conn) # INSERT `stanfit` into db and store the UID
 tbl(conn, in_schema('stanfit', 'summary')) %>% filter(id == I(id))
 ```
 
-This makes it significantly easier to share `stanfit` objects, as well as run
-analyses across multiple `stanfit` objects. That's traditionally difficult
-to do when working with large objects representing the results from models
-that are complex or require large numbers of iterations to effectively sample
-from, because it's tricky to store them in RAM or otherwise keep track of
-slimmed-down representations of the `stanfit` object across many different
-`.RDS` archives.
+This helps avoid situations where:
+
+- Multiple researchers have to swap RDS archives back and forth to exchange
+  results.  
+  *Now, you can just write queries against a database to get the results*
+
+- Researchers want to do analysis across multiple (possibly many) sampled runs,
+  but don't have enough RAM to do so, or don't want to keep track of various
+  slimmed-down representations of the original `stanfit` object.
+  *Now, you can have the RDBMS do the heavy lifting, and enjoy a schema that
+  doesn't care if you add or subtract parameters from your model*
+
+- Researchers are using a computing cluster and want to avoid shuffling
+  around tons of RDS files, running out of space on either the cluster or their
+  dev machine, etc.
+  *Now, the cluster can just `INSERT` the `stanfit` object and move onto the
+  next task, without the need to write to disk.*
 
 Tested with Postgres 14.2, but it should work with many other SQL-based
 databases.
 
+Note: **dbstan currently does not save the** *`@sims`* **slot, which contains
+the raw samples. This will be supported in the future.**
+
 ## Get up and running
 
 1. Execute `init.sql` against your database, which CREATEs a `"stanfit"` schema
-   in your database and CREATEs all tables.
+   in your database and CREATEs all tables. We recommend reading `init.sql` first.  
+
+   If you're just testing out `dbstan`, you could use a SQLite db for this.
 
 2. Make sure you can connect to the database using [`DBI::dbConnect()`][dbconnect].
 
