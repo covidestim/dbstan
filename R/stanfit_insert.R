@@ -1,5 +1,6 @@
-get_run_id <- function(conn) {
-  query <- 'insert into stanfit.run_ids default values returning id'
+get_run_id <- function(conn, method = "sampling") {
+  query <-
+    paste0("insert into stanfit.run_ids (method) values '", method, " returning id")
   
   result <- DBI::dbGetQuery(conn, query)
 
@@ -83,7 +84,7 @@ optimizing_insert <- function(r, conn, schema = "stanfit") {
   DBI::dbBegin(conn)
   cli_h2("Beginning transaction")
 
-  id <- get_run_id(conn)
+  id <- get_run_id(conn, method = "optimizing")
   cli_alert_success("Assigned run id: {.bold {id}}")
 
   cli_h3("Generating tables")
