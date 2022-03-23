@@ -71,7 +71,7 @@ databases.
 Note: **dbstan currently does not save the** *`@sims`* **slot, which contains
 the raw samples. This will be supported in the future.**
 
-## Get up and running
+## Get started
 
 1. Execute `init.sql` against your database, which CREATEs a `"stanfit"` schema
    in your database and CREATEs all tables. We recommend reading `init.sql` first.  
@@ -111,11 +111,13 @@ between the `stanfit` object and its relational model.
 ### Table: `run_ids`
 
 This table is an index of all of the `stanfit` objects represented in the
-schema.
+schema. The `method` column identifies the run as a sampled run or an optimized
+run.
 
-| field | stanfit slot | notes                                                                |
-|-------|--------------|----------------------------------------------------------------------|
-| id    | None         | Serial, assigned by the database on insertion using `stanfit_insert` |
+| field  | stanfit slot | notes                                                                |
+|--------|--------------|----------------------------------------------------------------------|
+| id     | None         | Serial, assigned by the database on insertion using `stanfit_insert` |
+| method | None         | enum, `sampling`/`optimizing`                                        |
 
 ### Table: `run_info`
 
@@ -123,11 +125,23 @@ Basic information about the run including how long it took.
 
 | field      | stanfit slot                                          | type        | notes                                         |
 |------------|-------------------------------------------------------|-------------|-----------------------------------------------|
+| id         | None                                                  | serial      | Foreign key                                   |
 | model_name | `@model_name`                                         | text        | The name of the file, minus the extension     |
 | date       | `@date`                                               | timestamptz | The time the Stanfit object was created       |
 | duration   | `get_elapsed_time(r) %>% as_tibble(rownames='chain')` | JSON        | Retval is in SECONDS*                         |
 | mode       | `@mode`                                               | numeric     |                                               |
 | stan_args  | `@stan_args[[1]]`                                     | JSON        | Take the first chain and represent it as JSON |
+ 
+### Table: `optimizing_run_info`
+
+Optimizing runs have a lot less information associated with them - here we only
+keep track of the optimizer's return code and the value of the log-posterior.
+
+| field         | stanfit slot   | type             | notes                                                |
+|---------------|----------------|------------------|------------------------------------------------------|
+| id            | None           | serial           | Foreign key                                          |
+| return_code   | `$return_code` | integer          | Return code from the optimizing routine              |
+| log_posterior | `$value`       | double precision | The value of the log-posterior at the point-estimate |
 
 ### Table: `model_pars`
 
@@ -139,7 +153,7 @@ Model parameters and their dimension. Includes variables declared in:
 
 | field | stanfit slot        | type    | notes                                            |
 |-------|---------------------|---------|--------------------------------------------------|
-| id    | None                | serial  | Foreign key?                                     |
+| id    | None                | serial  | Foreign key                                      |
 | par   | `names(r@par_dims)` | text    | Includes all parameters/transformed ps/generated |
 | dim   | `@par_dims`         | numeric | 0 represents scalars                             |
 
@@ -198,9 +212,23 @@ We pivot the data a bit to get it into nearly the same structure as the `summary
 | P75     | `summary(r)$summary[["75%"]]`   | double precision |       |
 | P97.5   | `summary(r)$summary[["97.5%"]]` | double precision |       |
 
+### Table: `optimizing_summary`
+
+Optimizing results are sufficiently different in structure from sampler results
+that they are given their own table.
+
+| field     | list key       | type             | notes |
+|-----------|----------------|------------------|-------|
+| id        | None           |                  |       |
+| par       | `names(r$par)` | text             |       |
+| idx       | `names(r$par)` | integer          |       |
+| point_est | `r$value`      | double precision |       |
+
 ### Table: `log_posterior`
 
-The log posterior at each iteration, for each chain.
+The log posterior at each iteration, for each chain. **Note:** log_posterior
+values for optimized runs are not located here - they're in the
+`optimizing_run_info` table.
 
 | field | stanfit slot                     | type             | notes |
 |-------|----------------------------------|------------------|-------|

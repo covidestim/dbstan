@@ -1,8 +1,11 @@
 /* Create a schema to house all of the data */
 create schema stanfit;
 
+create type stanfit.method as enum ('sampling', 'optimizing');
+
 create table stanfit.run_ids (
-  id serial primary key
+  id serial primary key,
+  method stanfit.method default 'sampling'
 );
 
 create table stanfit.run_info (
@@ -13,6 +16,12 @@ create table stanfit.run_info (
   mode integer not null,
   stan_args json not null,
   chains integer not null
+);
+
+create table stanfit.optimizing_run_info (
+  id integer primary key references stanfit.run_ids,
+  return_code integer not null,
+  log_posterior double precision not null
 );
 
 create table stanfit.model_pars (
@@ -60,6 +69,15 @@ create table stanfit.c_summary (
   p97_5 double precision,
 
   primary key (id, chain, par, idx)
+);
+
+create table stanfit.optimizing_summary (
+  id integer references stanfit.run_ids,
+  par text not null,
+  idx integer not null,
+  point_est double precision,
+
+  primary key (id, par, idx)
 );
 
 create table stanfit.log_posterior (

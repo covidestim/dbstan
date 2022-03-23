@@ -1,7 +1,3 @@
-get_run_id <- function(sf, id) {
-
-}
-
 get_run_info <- function(sf, id) {
 
   elapsed_matrix <- rstan::get_elapsed_time(sf)
@@ -22,6 +18,14 @@ get_run_info <- function(sf, id) {
   ) -> d
 
   d
+}
+
+get_optimizing_run_info <- function(r, id) {
+  tibble::tibble(
+    id,
+    return_code = r$return_code,
+    log_posterior = r$value
+  )
 }
 
 get_model_pars <- function(sf, id) {
@@ -93,6 +97,26 @@ get_c_summary <- function(sf, id) {
   d
 }
 
+get_optimizing_summary <- function(r, id) {
+  d <- tibble::tibble(
+    par = names(r$par),
+    point_est = r$par
+  )                  
+
+  matched <- stringr::str_match(d$par, array_bracket_regex)
+
+  idx <- ifelse(
+    is.na(matched[,3]),
+    0,
+    as.numeric(matched[,3])
+  )
+
+  d <- dplyr::mutate(d, id, par = matched[,2], idx)
+
+  d
+}
+
+
 #' @importFrom magrittr %>%
 get_log_posterior <- function(sf, id) {
   lp <- rstan::get_logposterior(sf)
@@ -162,6 +186,27 @@ get_table_entries <- function(sf, id, progress = T) {
     c_summary      = c_summary,
     log_posterior  = log_posterior,
     sampler_params = sampler_params
+  )
+}
+
+get_table_entries_optimizing <- function(r, id, progress = T) {
+
+  if (progress)
+    info <- cli_alert_success
+  else
+    info <- function(...) NULL
+
+  dims <- function(df) paste0("({.val {nrow(",df,")}} × {.val {ncol(",df,")}})")
+
+  optimizing_run_info <- get_optimizing_run_info(r, id)
+  info(paste0("Generated entries for: {.val optimizing_run_info} ", dims("optimizing_run_info")))
+
+  optimizing_summary <- get_optimizing_summary(r, id)
+  info(paste0("Generated entries for: {.val optimizing_summary} ", dims("optimizing_summary")))
+
+  list(
+    optimizing_run_info = optimizing_run_info,
+    optimizing_summary  = optimizing_summary
   )
 }
 

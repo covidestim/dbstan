@@ -47,3 +47,36 @@ get_stanfit <- function(id, conn, schema = "stanfit") {
 
   invisible(tbls)
 }
+
+#' @importFrom dplyr tbl
+#' @importFrom dbplyr in_schema
+#' @importFrom cli cli_ul cli_li cli_end cli_h2 cli_h1 cli_vec
+#' @importFrom magrittr %>%
+#' @export
+get_optimizing <- function(id, conn, schema = "stanfit") {
+
+  id_ <- id
+
+  filter_id <- function(df) dplyr::filter(df, id == id_)
+
+  list(
+    optimizing_run_info = tbl(conn, in_schema(schema, "optimizing_run_info"))       %>% filter_id,
+    optimizing_summary  = tbl(conn, in_schema(schema, "optimizing_summary"))        %>% filter_id
+  ) -> tbls
+
+  log_posterior <- dplyr::pull(tbls$optimizing_run_info, log_posterior)
+
+  cli_h1("ID[{id_}] (log_posterior {.val {log_posterior}})")
+
+  dims <- function(dbtbl) list(
+    nrow = dplyr::pull(dplyr::tally(dbtbl), n),
+    ncol = ncol(dbtbl)
+  )
+
+  cli_h2("Tables")
+  cli_ul()
+  purrr::iwalk(tbls, ~cli_li("{.code ${.y}}:\t {.val {dims(.x)$nrow}} × {.val {dims(.x)$ncol}} - {cli_vec(cli::bg_white(colnames(.x)), list(vec_sep=', ', vec_last=', '))}"))
+  cli_end()
+
+  invisible(tbls)
+}
