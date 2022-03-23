@@ -1,6 +1,6 @@
 get_run_id <- function(conn, method = "sampling") {
   query <-
-    paste0("insert into stanfit.run_ids (method) values '", method, "' returning id")
+    paste0("insert into stanfit.run_ids (method) values ('", method, "') returning id")
   
   result <- DBI::dbGetQuery(conn, query)
 
