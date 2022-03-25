@@ -33,7 +33,7 @@ tryInsert <- function(conn, name, value, progress = TRUE) {
 
 #' @importFrom cli cli_h2 cli_alert_success cli_h3 cli_alert_info
 #' @export
-stanfit_insert <- function(sf, conn, schema = "stanfit") {
+stanfit_insert <- function(sf, conn, schema = "stanfit", includeSamples = FALSE) {
 
   # -- Begin transaction ------------------------------------------------------
   DBI::dbBegin(conn)
@@ -45,9 +45,15 @@ stanfit_insert <- function(sf, conn, schema = "stanfit") {
   cli_h3("Generating tables")
 
   tryCatch({
-    tables <- get_table_entries(sf, id, progress = TRUE)
+    tables <- get_table_entries(sf, id, progress = TRUE, includeSamples = includeSamples)
   },
   error = function(cond) {
+    message(cond)
+    cli::cli_alert_warning("Aborting transaction")
+    
+    return(DBI::dbRollback(conn))
+  },
+  interrupt = function(cond) {
     message(cond)
     cli::cli_alert_warning("Aborting transaction")
     
@@ -61,6 +67,10 @@ stanfit_insert <- function(sf, conn, schema = "stanfit") {
   tryInsert(conn, DBI::Id(schema = schema, table = "stanmodel"),      tables$stanmodel)
   tryInsert(conn, DBI::Id(schema = schema, table = "summary"),        tables$summary)
   tryInsert(conn, DBI::Id(schema = schema, table = "c_summary"),      tables$c_summary)
+
+  if (!is.null(tables$samples))
+    tryInsert(conn, DBI::Id(schema = schema, table = "samples"),      tables$samples)
+
   tryInsert(conn, DBI::Id(schema = schema, table = "log_posterior"),  tables$log_posterior)
   tryInsert(conn, DBI::Id(schema = schema, table = "sampler_params"), tables$sampler_params)
 

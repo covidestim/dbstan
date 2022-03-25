@@ -116,6 +116,36 @@ get_optimizing_summary <- function(r, id) {
   d
 }
 
+get_samples <- function(sf, id) {
+
+  rstan::extract(sf, permuted = F) -> sf_mat
+
+  niter   <- dim(sf_mat)[1]
+  nchains <- dim(sf_mat)[2]
+
+  rows_for_iteration <- function(iter_num)
+    purrr::map_dfr(1:nchains, ~dplyr::mutate(
+      tibble::as_tibble(sf_mat[iter_num, ., ], rownames = 'par'),
+      chain = .,
+      iter = iter_num
+    ))
+
+  d <- purrr::map_dfr(1:niter, rows_for_iteration)
+
+  array_bracket_regex <- '^([A-Za-z_][A-Za-z_0-9]*)(?:\\[([0-9]+)\\])?$'
+
+  matched <- stringr::str_match(d$par, array_bracket_regex)
+
+  idx <- ifelse(
+    is.na(matched[,3]),
+    0,
+    as.numeric(matched[,3])
+  )
+
+  d <- dplyr::mutate(d, id, par = matched[,2], idx)
+
+  d
+}
 
 #' @importFrom magrittr %>%
 get_log_posterior <- function(sf, id) {
@@ -148,7 +178,7 @@ get_sampler_params_ <- function(sf, id) {
   )
 }
 
-get_table_entries <- function(sf, id, progress = T) {
+get_table_entries <- function(sf, id, progress = T, includeSamples = F) {
 
   if (progress)
     info <- cli_alert_success
@@ -172,6 +202,11 @@ get_table_entries <- function(sf, id, progress = T) {
   c_summary <- get_c_summary(sf, id)
   info(paste0("Generated entries for: {.val c_summary} ", dims("c_summary")))
 
+  if (identical(includeSamples, T)) {
+    samples <- get_samples(sf, id)
+    info(paste0("Generated entries for: {.val samples} ", dims("samples")))
+  }
+
   log_posterior <- get_log_posterior(sf, id)
   info(paste0("Generated entries for: {.val log_posterior} ", dims("log_posterior")))
 
@@ -184,9 +219,15 @@ get_table_entries <- function(sf, id, progress = T) {
     stanmodel      = stanmodel,
     summary        = summary_,
     c_summary      = c_summary,
+    samples        = NULL,
     log_posterior  = log_posterior,
     sampler_params = sampler_params
-  )
+  ) -> lst
+
+  if (identical(includeSamples, T))
+    lst$samples <- samples
+
+  lst
 }
 
 get_table_entries_optimizing <- function(r, id, progress = T) {

@@ -10,6 +10,7 @@ tbl_dict <- function(conn, schema = "stanfit") {
     stanmodel           = tbl(conn, in_schema(schema, "stanmodel")),
     summary             = tbl(conn, in_schema(schema, "summary")),
     c_summary           = tbl(conn, in_schema(schema, "c_summary")),
+    samples             = tbl(conn, in_schema(schema, "samples")),
     optimizing_summary  = tbl(conn, in_schema(schema, "optimizing_summary")),
     log_posterior       = tbl(conn, in_schema(schema, "log_posterior")),
     sampler_params      = tbl(conn, in_schema(schema, "sampler_params"))

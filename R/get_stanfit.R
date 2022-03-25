@@ -9,12 +9,19 @@ get_stanfit <- function(id, conn, schema = "stanfit") {
 
   filter_id <- function(df) dplyr::filter(df, id == id_)
 
+  dims <- function(dbtbl) list(
+    nrow = dplyr::pull(dplyr::tally(dbtbl), n),
+    ncol = ncol(dbtbl)
+  )
+
+
   list(
     run_info       = tbl(conn, in_schema(schema, "run_info"))       %>% filter_id,
     model_pars     = tbl(conn, in_schema(schema, "model_pars"))     %>% filter_id,
     stanmodel      = tbl(conn, in_schema(schema, "stanmodel"))      %>% filter_id,
     summary        = tbl(conn, in_schema(schema, "summary"))        %>% filter_id,
     c_summary      = tbl(conn, in_schema(schema, "c_summary"))      %>% filter_id,
+    samples        = tbl(conn, in_schema(schema, "samples"))        %>% filter_id,
     log_posterior  = tbl(conn, in_schema(schema, "log_posterior"))  %>% filter_id,
     sampler_params = tbl(conn, in_schema(schema, "sampler_params")) %>% filter_id
   ) -> tbls
@@ -27,6 +34,9 @@ get_stanfit <- function(id, conn, schema = "stanfit") {
 
   cli_h2("Model: {.val {dplyr::pull(tbls$run_info, model_name)}}, {.val {stringr::str_count(dplyr::pull(tbls$stanmodel, code), '\n')}} loc")
 
+  if (dims(tbls$samples)$nrow == 0)
+    cli::cli_alert_warning("No samples available for this run")
+
   cli_h2("Chain summary")
   cli_ol()
   purrr::pwalk(
@@ -35,14 +45,9 @@ get_stanfit <- function(id, conn, schema = "stanfit") {
   )
   cli_end()
 
-  dims <- function(dbtbl) list(
-    nrow = dplyr::pull(dplyr::tally(dbtbl), n),
-    ncol = ncol(dbtbl)
-  )
-
   cli_h2("Tables")
   cli_ul()
-  purrr::iwalk(tbls, ~cli_li("{.code ${.y}}:\t {.val {dims(.x)$nrow}} × {.val {dims(.x)$ncol}} - {cli_vec(cli::bg_white(colnames(.x)), list(vec_sep=', ', vec_last=', '))}"))
+  purrr::iwalk(tbls, ~cli_li("{.field ${.y}}:\t {.val {dims(.x)$nrow}} × {.val {dims(.x)$ncol}} - {cli_vec(cli::bg_white(cli::col_black((colnames(.x)))), list(vec_sep=', ', vec_last=', '))}"))
   cli_end()
 
   invisible(tbls)
@@ -75,7 +80,7 @@ get_optimizing <- function(id, conn, schema = "stanfit") {
 
   cli_h2("Tables")
   cli_ul()
-  purrr::iwalk(tbls, ~cli_li("{.code ${.y}}:\t {.val {dims(.x)$nrow}} × {.val {dims(.x)$ncol}} - {cli_vec(cli::bg_white(colnames(.x)), list(vec_sep=', ', vec_last=', '))}"))
+  purrr::iwalk(tbls, ~cli_li("{.field ${.y}}:\t {.val {dims(.x)$nrow}} × {.val {dims(.x)$ncol}} - {cli_vec(cli::bg_white(cli::col_black(colnames(.x))), list(vec_sep=', ', vec_last=', '))}"))
   cli_end()
 
   invisible(tbls)

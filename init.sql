@@ -71,6 +71,18 @@ create table stanfit.c_summary (
   primary key (id, chain, par, idx)
 );
 
+create table stanfit.samples (
+  id smallint references stanfit.run_ids,
+  chain smallint not null,
+  iter smallint not null,
+  par text not null,
+  idx smallint not null,
+  value double precision
+);
+
+create index samples_for_run_and_par_idx_index
+  on stanfit.samples (id, par) with (deduplicate_items = off);
+
 create table stanfit.optimizing_summary (
   id integer references stanfit.run_ids,
   par text not null,
