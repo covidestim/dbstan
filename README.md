@@ -9,7 +9,7 @@ object into a DB, and it also provides a helper method to retrieve a particular
 convenient to run analyses and share data.
 
 The package creates a transformed representation of a `stanfit` object as
-entries in eight SQL tables:
+entries in nine SQL tables:
 
 - `stanfit.run_ids`
 - `stanfit.run_info`
