@@ -181,11 +181,11 @@ into the combined-chain summary (`rstan::summary(obj)$summary`).
 | mean    | `summary(r)$summary$mean`       | double precision |       |
 | se_mean | `summary(r)$summary$se_mean`    | double precision |       |
 | sd      | `summary(r)$summary$sd`         | double precision |       |
-| P2.5    | `summary(r)$summary[["2.5%"]]`  | double precision |       |
+| P2_5    | `summary(r)$summary[["2.5%"]]`  | double precision |       |
 | P25     | `summary(r)$summary[["25%"]]`   | double precision |       |
 | P50     | `summary(r)$summary[["50%"]]`   | double precision |       |
 | P75     | `summary(r)$summary[["75%"]]`   | double precision |       |
-| P97.5   | `summary(r)$summary[["97.5%"]]` | double precision |       |
+| P97_5   | `summary(r)$summary[["97.5%"]]` | double precision |       |
 | n_eff   | `summary(r)$summary$n_eff`      | double precision |       |
 | Rhat    | `summary(r)$summary$Rhat`       | double precision |       |
 
@@ -208,11 +208,11 @@ We pivot the data a bit to get it into nearly the same structure as the `summary
 | mean    | `summary(r)$summary$mean`       | double precision |       |
 | se_mean | `summary(r)$summary$se_mean`    | double precision |       |
 | sd      | `summary(r)$summary$sd`         | double precision |       |
-| P2.5    | `summary(r)$summary[["2.5%"]]`  | double precision |       |
+| P2_5    | `summary(r)$summary[["2.5%"]]`  | double precision |       |
 | P25     | `summary(r)$summary[["25%"]]`   | double precision |       |
 | P50     | `summary(r)$summary[["50%"]]`   | double precision |       |
 | P75     | `summary(r)$summary[["75%"]]`   | double precision |       |
-| P97.5   | `summary(r)$summary[["97.5%"]]` | double precision |       |
+| P97_5   | `summary(r)$summary[["97.5%"]]` | double precision |       |
 
 ### Table: `samples`
 
