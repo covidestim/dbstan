@@ -17,6 +17,7 @@ entries in eight SQL tables:
 - `stanfit.stanmodel`
 - `stanfit.summary`
 - `stanfit.c_summary`
+- `stanfit.samples`
 - `stanfit.log_posterior`
 - `stanfit.sampler_params`
 
