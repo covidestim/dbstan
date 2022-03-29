@@ -41,10 +41,15 @@ fit1 <- stan(
   data = schools_data,    # named list of data
 )
 
-id <- stanfit_insert(fit1, conn) # INSERT `stanfit` into db and store the UID
+# INSERT `stanfit` into db and store the UID, optionally including all
+# posterior samples.
+id <- stanfit_insert(fit1, conn, insertSamples = T) 
 
-# Retrieve summary as a dbplyr table, backed by your database.
-tbl(conn, in_schema('stanfit', 'summary')) %>% filter(id == I(id))
+# Retrieve all relevant tables as a list of tables
+tbl_dict(conn)
+
+# Retrieve all relevant tables for a particular `id`
+tables <- get_stanfit(id, conn)
 ```
 
 This helps avoid situations where:
@@ -67,9 +72,6 @@ This helps avoid situations where:
 
 Tested with Postgres 14.2, but it should work with many other SQL-based
 databases.
-
-Note: **dbstan currently does not save the** *`@sims`* **slot, which contains
-the raw samples. This will be supported in the future.**
 
 ## Get started
 
@@ -96,8 +98,7 @@ below:
   block and `transformed parameters{}` block
 - `par_dims` Dimensions of said paramaeters
 - `mode` Status code indicating success or failure of the sampler
-- `sim` Matrix containing the individual samples. **`dbstan` does not currently
-  attempt to load this info into the db due to its large size**
+- `sim` Matrix containing the individual samples.
 - `inits` Initial values of all parameters on the first iteration
 - `stan_args` - Arguments for the sampler
 - `stanmodel` - Model code, as a `stanmodel` object
@@ -189,7 +190,7 @@ into the combined-chain summary (`rstan::summary(obj)$summary`).
 
 ### Table: `c_summary`
                                                             
-Per-chain summary. This one is a little tricky.
+Per-chain summary.
 
 - There's no `n_eff` or `Rhat`
 - The column names in the object returned by `summary(r)` are confusing, as all
@@ -211,6 +212,21 @@ We pivot the data a bit to get it into nearly the same structure as the `summary
 | P50     | `summary(r)$summary[["50%"]]`   | double precision |       |
 | P75     | `summary(r)$summary[["75%"]]`   | double precision |       |
 | P97.5   | `summary(r)$summary[["97.5%"]]` | double precision |       |
+
+### Table: `samples`
+
+All samples. Call `stanfit_insert(sft, includeSamples = T)` to insert samples
+from your posterior into the database. Otherwise, the default behavior is to
+save (potentially lots) of space and *not* insert any samples.
+
+| field | stanfit slot                | type             | notes |
+|-------|-----------------------------|------------------|-------|
+| id    | None                        | smallint         |       |
+| chain | No exact mapping            | smallint         |       |
+| iter  | see `R/get_table_entries.R` | smallint         |       |
+| par   |                             | text             |       |
+| idx   |                             | smallint         |       |
+| value |                             | double precision |       |
 
 ### Table: `optimizing_summary`
 
