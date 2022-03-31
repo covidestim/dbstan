@@ -1,4 +1,5 @@
 get_run_id <- function(conn, method = "sampling") {
+  # This asks the database to decide on a new `$id` number, and give it to us
   query <-
     paste0("insert into stanfit.run_ids (method) values ('", method, "') returning id")
   
@@ -25,14 +26,42 @@ tryInsert <- function(conn, name, value, progress = TRUE) {
     )
 
     cli::cli_alert_warning("Aborting transaction")
-    DBI::dbRollback(conn)
+    DBI::dbRollback(conn) # Rollback the transaction on failure
 
     message(cond)
+  },
+  interrupt = function(cond) {
+    message(
+      "Error occurred during insertion into table '",
+      DBI::dbQuoteIdentifier(conn, name), "':"
+    )
+
+    message(cond)
+    cli::cli_alert_warning("Aborting transaction")
+    
+    return(DBI::dbRollback(conn))
   })
 }
 
+#' Insert a sampled run into the database
+#'
+#' Given a sampled model and a database connection, `stanfit_insert` will
+#' preprocess the run into a relational format and insert it into the database.
+#' This operation is expressed as a SQL transaction and thus the transaction
+#' will be rolled-back if an error occurs.
+#'
+#' @return The unique ID of the inserted run
+#' @param sf The return value of a call to `rstan::optimizing`
+#' @param conn A `DBI::DBConnection` object, the return value of a call to `DBI::dbConnect` 
+#' @param schema A string, the name of the schema in your database where dbstan tables are stored
+#' @param includeSamples A logical, default `false`, whether or not to include
+#'   samples in the database insert. This should be a carefully considered
+#'   decision because depending on model size and number of iterations, the
+#'   samples can easily take up **2GB+** disk space. For large models with many
+#'   iterations, expect `stanfit_insert()` to take 10-30 minutes, depending
+#'   on the model size/iterations, network uplink, and other factors.
+#' @seealso [optimizing_insert]
 #' @importFrom cli cli_h2 cli_alert_success cli_h3 cli_alert_info
-#' @export
 stanfit_insert <- function(sf, conn, schema = "stanfit", includeSamples = FALSE) {
 
   # -- Begin transaction ------------------------------------------------------
@@ -68,8 +97,10 @@ stanfit_insert <- function(sf, conn, schema = "stanfit", includeSamples = FALSE)
   tryInsert(conn, DBI::Id(schema = schema, table = "summary"),        tables$summary)
   tryInsert(conn, DBI::Id(schema = schema, table = "c_summary"),      tables$c_summary)
 
-  if (!is.null(tables$samples))
+  if (!is.null(tables$samples)) {
+    cli::cli_alert_warning("Beginning insertion of samples. This will take a while.")
     tryInsert(conn, DBI::Id(schema = schema, table = "samples"),      tables$samples)
+  }
 
   tryInsert(conn, DBI::Id(schema = schema, table = "log_posterior"),  tables$log_posterior)
   tryInsert(conn, DBI::Id(schema = schema, table = "sampler_params"), tables$sampler_params)
@@ -83,10 +114,21 @@ stanfit_insert <- function(sf, conn, schema = "stanfit", includeSamples = FALSE)
   # -- End transaction --------------------------------------------------------
 
   # id of inserted run is returned invisibly
-  invisible(id)
+  id
 }
 
-#' @importFrom cli cli_h2 cli_alert_success cli_h3 cli_alert_info
+#' Insert an optimization run into the database
+#'
+#' Given an optimized model and a database connection, `optimizing_insert` will
+#' preprocess the run into a relational format and insert it into the database.
+#' This operation is expressed as a SQL transaction and thus the transaction
+#' will be rolled-back if an error occurs.
+#'
+#' @return The unique ID of the inserted run
+#' @param r The return value of a call to `rstan::optimizing`
+#' @param conn A `DBI::DBConnection` object, the return value of a call to `DBI::dbConnect` 
+#' @param schema A string, the name of the schema in your database where dbstan tables are stored
+#' @seealso [stanfit_insert]
 #' @export
 optimizing_insert <- function(r, conn, schema = "stanfit") {
 
@@ -122,6 +164,6 @@ optimizing_insert <- function(r, conn, schema = "stanfit") {
   )
   # -- End transaction --------------------------------------------------------
 
-  # id of inserted run is returned invisibly
-  invisible(id)
+  # id of inserted run is returned
+  id
 }

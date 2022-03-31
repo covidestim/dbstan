@@ -1,19 +1,31 @@
 get_run_info <- function(sf, id) {
 
+  # Returns per-chain warmup and sampling times
   elapsed_matrix <- rstan::get_elapsed_time(sf)
   elapsed_tibble <- tibble::as_tibble(elapsed_matrix, rownames = 'chain')
 
+  # Get numeric values (`get_elapsed_time` returns character vectors)
   elapsed_tibble$chain = as.numeric(stringr::str_remove_all(
     elapsed_tibble$chain, 'chain:'
   ))
 
   tibble::tibble(
     id,
+
+    # This seems to be the name of the stan file, minus the extension
     model_name = sf@model_name,
+
+    # Parse their weird date format
     date       = as.Date(sf@date, format = "%a %b %d %H:%M:%S %Y"),
     duration   = jsonlite::toJSON(elapsed_tibble),
     mode       = sf@mode,
+
+    # There are `nchains` elements in `sf@stan_args` but I think they are 
+    # always identical so we will just use the first one and convert it to
+    # JSON.
     stan_args  = jsonlite::toJSON(sf@stan_args[[1]], auto_unbox=T),
+
+    # Number of chains
     chains     = length(sf@stan_args)
   ) -> d
 
@@ -32,17 +44,23 @@ get_model_pars <- function(sf, id) {
   tibble::tibble(
     id,
     par = names(sf@par_dims),
+
+    # Scalar parameters are assigned a length of zero, in order to 
+    # differentiate them from arrays.
     dim = purrr::map_dbl(sf@par_dims, ~ifelse(identical(., numeric(0)), 0, c(.)))
   )
 }
 
 get_stanmodel <- function(sf, id) {
+  # Just a string
   code <- rstan::get_stancode(sf)
 
   tibble::tibble(id, code)
 }
 
 summary_var_mapping <- c(
+  # RStan's default quantile naming scheme is incompatible with SQL, here we
+  # rename
   "2.5%"  = "p2_5",
   "25%"   = "p25",
   "50%"   = "p50",
@@ -51,6 +69,8 @@ summary_var_mapping <- c(
   "Rhat"  = "rhat"
 )
 
+# Matches the Stan syntax for indexing into an `array_name123[1]` and captures
+# the variable name and index.
 array_bracket_regex <- '^([A-Za-z_][A-Za-z_0-9]*)(?:\\[([0-9]+)\\])?$'
 
 get_summary <- function(sf, id) {
@@ -58,6 +78,7 @@ get_summary <- function(sf, id) {
 
   matched <- stringr::str_match(d$par, array_bracket_regex)
 
+  # `idx` for scalars is 0, 1-based indexing for all vectors/arrays.
   idx <- ifelse(
     is.na(matched[,3]),
     0,
@@ -70,6 +91,7 @@ get_summary <- function(sf, id) {
   d
 }
 
+# Per-chain summaries
 get_c_summary <- function(sf, id) {
   d <- tibble::as_tibble(rstan::summary(sf)$c_summary, rownames = 'par')
 
@@ -83,6 +105,7 @@ get_c_summary <- function(sf, id) {
 
   d <- dplyr::mutate(d, id, par = matched[,2], idx)
 
+  # Deal with odd schema - marshal data into a 1row=1observation format
   d <- tidyr::pivot_longer(d, tidyselect::matches('[A-Za-z0-9_.%]+.chain:[0-9][0-9]*')) 
   d <- tidyr::separate(d, name, into = c('metric', 'chain'), sep = '.chain:') 
 
@@ -123,6 +146,7 @@ get_samples <- function(sf, id) {
   niter   <- dim(sf_mat)[1]
   nchains <- dim(sf_mat)[2]
 
+  # Extract samples of all parameters for a given iteration
   rows_for_iteration <- function(iter_num)
     purrr::map_dfr(1:nchains, ~dplyr::mutate(
       tibble::as_tibble(sf_mat[iter_num, ., ], rownames = 'par'),
@@ -147,7 +171,6 @@ get_samples <- function(sf, id) {
   d
 }
 
-#' @importFrom magrittr %>%
 get_log_posterior <- function(sf, id) {
   lp <- rstan::get_logposterior(sf)
 
@@ -157,11 +180,13 @@ get_log_posterior <- function(sf, id) {
   )
 }
 
+#' @importFrom magrittr %>%
 get_sampler_params_ <- function(sf, id) {
 
   # Convert from matrix to tibble
   params <- rstan::get_sampler_params(sf) %>% purrr::map(tibble::as_tibble)
 
+  # Note the changing variable names
   purrr::imap_dfr(
     params,
     ~tibble::tibble(
@@ -202,6 +227,7 @@ get_table_entries <- function(sf, id, progress = T, includeSamples = F) {
   c_summary <- get_c_summary(sf, id)
   info(paste0("Generated entries for: {.val c_summary} ", dims("c_summary")))
 
+  # Don't build the sample tibble unless neccessary
   if (identical(includeSamples, T)) {
     samples <- get_samples(sf, id)
     info(paste0("Generated entries for: {.val samples} ", dims("samples")))
@@ -219,7 +245,7 @@ get_table_entries <- function(sf, id, progress = T, includeSamples = F) {
     stanmodel      = stanmodel,
     summary        = summary_,
     c_summary      = c_summary,
-    samples        = NULL,
+    samples        = NULL, # By default `lst$samples` is NULL
     log_posterior  = log_posterior,
     sampler_params = sampler_params
   ) -> lst

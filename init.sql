@@ -9,7 +9,7 @@ create table stanfit.run_ids (
 );
 
 create table stanfit.run_info (
-  id integer primary key references stanfit.run_ids,
+  id integer primary key references stanfit.run_ids on delete cascade,
   model_name text not null,
   date timestamptz not null,
   duration json not null,
@@ -19,13 +19,13 @@ create table stanfit.run_info (
 );
 
 create table stanfit.optimizing_run_info (
-  id integer primary key references stanfit.run_ids,
+  id integer primary key references stanfit.run_ids on delete cascade,
   return_code integer not null,
   log_posterior double precision not null
 );
 
 create table stanfit.model_pars (
-  id integer references stanfit.run_ids,
+  id integer references stanfit.run_ids on delete cascade,
   par text not null,
   dim integer not null,
 
@@ -33,12 +33,12 @@ create table stanfit.model_pars (
 );
 
 create table stanfit.stanmodel (
-  id integer primary key references stanfit.run_ids,
+  id integer primary key references stanfit.run_ids on delete cascade,
   code text not null
 );
 
 create table stanfit.summary (
-  id integer references stanfit.run_ids,
+  id integer references stanfit.run_ids on delete cascade,
   par text not null,
   idx integer not null,
   mean double precision,
@@ -56,7 +56,7 @@ create table stanfit.summary (
 );
 
 create table stanfit.c_summary (
-  id integer references stanfit.run_ids,
+  id integer references stanfit.run_ids on delete cascade,
   chain integer not null,
   par text not null,
   idx integer not null,
@@ -72,7 +72,7 @@ create table stanfit.c_summary (
 );
 
 create table stanfit.samples (
-  id smallint references stanfit.run_ids,
+  id smallint references stanfit.run_ids on delete cascade,
   chain smallint not null,
   iter smallint not null,
   par text not null,
@@ -84,7 +84,7 @@ create index samples_for_run_and_par_idx_index
   on stanfit.samples (id, par) with (deduplicate_items = off);
 
 create table stanfit.optimizing_summary (
-  id integer references stanfit.run_ids,
+  id integer references stanfit.run_ids on delete cascade,
   par text not null,
   idx integer not null,
   point_est double precision,
@@ -93,7 +93,7 @@ create table stanfit.optimizing_summary (
 );
 
 create table stanfit.log_posterior (
-  id integer references stanfit.run_ids,
+  id integer references stanfit.run_ids on delete cascade,
   chain integer not null,
   iter integer not null,
   value double precision not null,
@@ -102,7 +102,7 @@ create table stanfit.log_posterior (
 );
 
 create table stanfit.sampler_params (
-  id integer references stanfit.run_ids,
+  id integer references stanfit.run_ids on delete cascade,
   chain integer not null,
   iter integer not null,
   accept_stat double precision not null,

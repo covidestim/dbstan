@@ -1,3 +1,24 @@
+#' Return a dictionary of tables containing dbstan results
+#'
+#' Given a database connection `conn` and a database schema name `schema`,
+#' `tbl_dict()` returns a keyed list, where the key names are the tables, and
+#' the values are `dbplyr`-backed tibbles.
+#'
+#' @return A list of tables:
+#' - `run_ids`    
+#' - `run_info`           
+#' - `optimizing_run_info`
+#' - `model_pars`         
+#' - `stanmodel`          
+#' - `summary`            
+#' - `c_summary`          
+#' - `samples`            
+#' - `optimizing_summary` 
+#' - `log_posterior`      
+#' - `sampler_params`     
+#' @param conn A `DBI::DBConnection` object, the return value of a call to `DBI::dbConnect` 
+#' @param schema A string, the name of the schema in your database where dbstan tables are stored
+#' @seealso [get_stanfit] Returns tables specific to a particular Stan run.
 #' @importFrom dplyr tbl
 #' @importFrom dbplyr in_schema
 #' @export
