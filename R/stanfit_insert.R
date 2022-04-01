@@ -62,6 +62,7 @@ tryInsert <- function(conn, name, value, progress = TRUE) {
 #'   on the model size/iterations, network uplink, and other factors.
 #' @seealso [optimizing_insert]
 #' @importFrom cli cli_h2 cli_alert_success cli_h3 cli_alert_info
+#' @export
 stanfit_insert <- function(sf, conn, schema = "stanfit", includeSamples = FALSE) {
 
   # -- Begin transaction ------------------------------------------------------
