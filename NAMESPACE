@@ -3,6 +3,7 @@
 export(get_optimizing)
 export(get_stanfit)
 export(optimizing_insert)
+export(stanfit_insert)
 export(tbl_dict)
 importFrom(cli,cli_alert_info)
 importFrom(cli,cli_alert_success)
