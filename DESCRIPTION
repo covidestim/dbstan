@@ -21,3 +21,8 @@ Imports:
     stringr,
     tidyr,
     tidyselect
+Suggests: 
+    RPostgres,
+    RSQLite,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

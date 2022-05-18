@@ -1,15 +1,18 @@
 # dbstan
 
-`dbstan` is glue code for connecting [`rstan::stanfit`][stanfit] objects and
-relational databases.  It leverages the [DBI][dbi] package to provide a very
-simple, DBMS-agnostic interface for INSERTing a representation of a `stanfit`
-object into a DB, and it also provides a helper method to retrieve a particular
-`stanfit` object's information from the DB. This way, you can easily get
-(batches of) sampler results into a database, which usually makes it more
-convenient to run analyses and share data.
+`dbstan` is glue code for mapping [`rstan::stanfit`][stanfit] objects to
+relational database schemas.  It leverages the [DBI][dbi] package to provide a
+simple, DBMS-agnostic interface for:
 
-The package creates a transformed representation of a `stanfit` object as
-entries in nine SQL tables:
+- `INSERT`ing a representation of a `stanfit` object into a DB
+- Retrieving a particular `stanfit` object's information from the DB.
+- Materializing a `dbplyr`-based list of tables which contain all `stanfit`
+  information.
+
+This makes it easy to move (batches of) sampler results into a database, which
+makes it more convenient to run analyses and share data.
+
+The package maps a `stanfit` object into records stored in nine SQL tables:
 
 - `stanfit.run_ids`
 - `stanfit.run_info`
@@ -21,19 +24,18 @@ entries in nine SQL tables:
 - `stanfit.log_posterior`
 - `stanfit.sampler_params`
 
-This work is done by the `stanfit_insert()` function. For example:
+### Example:
 
 ```r
 library(rstan)
-library(dbplyr)
 library(dbstan)
 
 # Establish a DB connection using DBI
 conn <- DBI::dbConnect(
   RPostgres::Postgres(),
-  user = 'postgres',
-  password='password',
-  host='mydb.vkuzdd798xs.us-east-2.rds.amazonaws.com',
+  user     = 'postgres',
+  password = 'password',
+  host     = 'mydb.abcdefg1234567.us-east-2.rds.amazonaws.com'
 )
 
 # Get samples from any sampled Stan model. Currently only NUTS is supported.
@@ -42,57 +44,69 @@ fit1 <- stan(
   data = schools_data,    # named list of data
 )
 
-# INSERT `stanfit` into db and store the UID, optionally including all
-# posterior samples.
-id <- stanfit_insert(fit1, conn, insertSamples = T) 
+# INSERT `stanfit` into db and store the generated primary key, optionally
+# including all posterior samples.
+id <- stanfit_insert(fit1, conn, insert_samples = T) 
 
-# Retrieve all relevant tables as a list of tables
+# Retrieve all relevant tables as a list of dbplyr-backed tables
 tbl_dict(conn)
 
-# Retrieve all relevant tables for a particular `id`
+# Or, retrieve all relevant tables for a particular `id`
 tables <- get_stanfit(id, conn)
 ```
 
+## Use cases
+
 This helps avoid situations where:
 
-- Multiple researchers have to swap RDS archives back and forth to exchange
+- Multiple researchers swap `.RDS` archives back and forth to exchange
   results.  
-  > *Now, you can just write queries against a database to get the results*
+  > *Now, just write queries against a database to get the results*
 
 - Researchers want to do analysis across multiple (possibly many) sampled runs,
   but don't have enough RAM to do so, or don't want to keep track of various
   slimmed-down representations of the original `stanfit` object.  
-  > *Now, you can have the RDBMS do the heavy lifting, and enjoy a schema that
-  doesn't care if you add or subtract parameters from your model*
+  > *Now, the RDBMS does the heavy lifting, and gracefully adapts to a model
+  > that may change over time in its parameter schema*
 
 - Researchers are using a computing cluster and want to avoid shuffling
-  around tons of RDS files, running out of space on either the cluster or their
-  dev machine, etc.  
-  > *Now, the cluster can just `INSERT` the `stanfit` object and move onto the
-  next task, without the need to write to disk.*
+  around tons of `.RDS` files, running out of space on either the cluster or
+  their dev machine, etc.  
+  > *Now, the cluster can just `INSERT` the `stanfit` object once it is created,
+  > and move onto the next task - no write to disk necessary.*
 
 Tested with Postgres 14.2, but it should work with many other SQL-based
 databases.
 
 ## Get started
 
-1. Execute `init.sql` against your database, which CREATEs a `"stanfit"` schema
-   in your database and CREATEs all tables. We recommend reading `init.sql` first.  
+1. Execute `init.sql` against your database, which `CREATE`s a `"stanfit"`
+   schema in your database and `CREATE`s all tables. We recommend reading
+   `init.sql` first!
 
-   If you're just testing out `dbstan`, you could use a SQLite db for this.
+   If you're just testing out `dbstan`, you could use a SQLite db for this, or
+   Postgres in a container.
+
+   ```
+   psql -f init.sql
+   ```
 
 2. Make sure you can connect to the database using [`DBI::dbConnect()`][dbconnect].
+
+3. Pass a `stanfit` object to `stanfit_insert(stanfit_object, conn)`. The
+   returned number is a unique identifier `id` which is a field in all the
+   tables.
 
 ## Structure of the `stanfit` object
 
 Results from calls to `rstan::sampling()` or `rstan::stan()` are stored in
 `stanfit` objects.  The contents of the object are described in detail
 [here][stanfit]. Each object is an [S4][s4] class with a bunch of slots that
-represent various parts of the sampling process, like the model code, the
+represent various parts of the sampling process, such as the model code, the
 samples drawn from the posterior, and diagnostic messages from the NUTS sampler.
 
-`dbstan` organizes these slots into a relational model. The slots are summarized
-below:
+`dbstan` organizes these slots into a relational model. The slots are
+summarized below:
 
 - `model_name` Name of the model
 - `model_pars` Parameters in the model, including the `generated quantities{}`
@@ -101,8 +115,8 @@ below:
 - `mode` Status code indicating success or failure of the sampler
 - `sim` Matrix containing the individual samples.
 - `inits` Initial values of all parameters on the first iteration
-- `stan_args` - Arguments for the sampler
-- `stanmodel` - Model code, as a `stanmodel` object
+- `stan_args` Arguments for the sampler
+- `stanmodel` Model code, as a `stanmodel` object
 - `date` - Date of object creation
 
 ## `dbstan` table schema
@@ -216,18 +230,18 @@ We pivot the data a bit to get it into nearly the same structure as the `summary
 
 ### Table: `samples`
 
-All samples. Call `stanfit_insert(sft, includeSamples = T)` to insert samples
+All samples. Call `stanfit_insert(sft, include_samples = T)` to insert samples
 from your posterior into the database. Otherwise, the default behavior is to
 save (potentially lots) of space and *not* insert any samples.
 
-| field | stanfit slot                | type             | notes |
-|-------|-----------------------------|------------------|-------|
-| id    | None                        | smallint         |       |
-| chain | No exact mapping            | smallint         |       |
-| iter  | see `R/get_table_entries.R` | smallint         |       |
-| par   |                             | text             |       |
-| idx   |                             | smallint         |       |
-| value |                             | double precision |       |
+| field | stanfit slot                | type             | notes                          |
+|-------|-----------------------------|------------------|--------------------------------|
+| id    | None                        | smallint         | using `smallint` to save space |
+| chain | No exact mapping            | smallint         |                                |
+| iter  | see `R/get_table_entries.R` | smallint         |                                |
+| par   |                             | text             |                                |
+| idx   |                             | smallint         |                                |
+| value |                             | double precision |                                |
 
 ### Table: `optimizing_summary`
 

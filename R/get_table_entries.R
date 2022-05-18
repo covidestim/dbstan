@@ -203,7 +203,7 @@ get_sampler_params_ <- function(sf, id) {
   )
 }
 
-get_table_entries <- function(sf, id, progress = T, includeSamples = F) {
+get_table_entries <- function(sf, id, progress = T, include_samples = F) {
 
   if (progress)
     info <- cli_alert_success
@@ -228,7 +228,7 @@ get_table_entries <- function(sf, id, progress = T, includeSamples = F) {
   info(paste0("Generated entries for: {.val c_summary} ", dims("c_summary")))
 
   # Don't build the sample tibble unless neccessary
-  if (identical(includeSamples, T)) {
+  if (identical(include_samples, T)) {
     samples <- get_samples(sf, id)
     info(paste0("Generated entries for: {.val samples} ", dims("samples")))
   }
@@ -250,7 +250,7 @@ get_table_entries <- function(sf, id, progress = T, includeSamples = F) {
     sampler_params = sampler_params
   ) -> lst
 
-  if (identical(includeSamples, T))
+  if (identical(include_samples, T))
     lst$samples <- samples
 
   lst
