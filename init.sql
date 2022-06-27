@@ -122,4 +122,6 @@ grant usage on schema stanfit to dbstan_writer;
 grant usage on schema stanfit to dbstan_reader;
 
 grant select, insert on all tables in schema stanfit to dbstan_writer;
+grant usage, select on all sequences in schema stanfit to dbstan_writer;
+
 grant select on all tables in schema stanfit to dbstan_reader;
