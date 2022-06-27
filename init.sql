@@ -114,3 +114,12 @@ create table stanfit.sampler_params (
 
   primary key (id, chain, iter)
 );
+
+create role dbstan_writer noinherit login password 'password';
+create role dbstan_reader noinherit login password 'password';
+
+grant usage on schema stanfit to dbstan_writer;
+grant usage on schema stanfit to dbstan_reader;
+
+grant select, insert on all tables in schema stanfit to dbstan_writer;
+grant select on all tables in schema stanfit to dbstan_reader;
